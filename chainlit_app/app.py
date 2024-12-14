@@ -155,7 +155,7 @@ async def extract_parameters(user_input: str):
     - budget (if any)
     - style (e.g., casual, formal)
     - purpose (e.g., wedding, work event, everyday wear)
-    - product group (e.g., clothing, electronics, watches)
+    - product group (e.g., clothing, electronics, watches, jewellery, High Boots)
 
     User input: "{input}"
 
