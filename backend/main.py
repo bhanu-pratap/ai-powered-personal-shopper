@@ -3,10 +3,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
+import requests
 from langchain.prompts import PromptTemplate
 # from langchain.chat_models import ChatOpenAI
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 # Initialize FastAPI
@@ -24,7 +26,7 @@ llm = ChatOpenAI(
 
 # Define prompt template
 prompt_template = PromptTemplate(
-    input_variables=["purpose", "product_group", "budget","style", "user_query"],
+    input_variables=["purpose", "product_group", "budget","style", "user_query", "vendor"],
     template="""
 You are a personal shopper helping users find the perfect outfit or product based on their needs.
 
@@ -33,11 +35,15 @@ Details:
 - Style Preferences: {style}
 - Budget: {budget}
 - product_group: product_group
+- vendor: vendor
 - User's Query: "{user_query}"
 
 Provide:
-1. A brief recommendation.
-2. Specific product suggestions (name, category, price, link).
+    Create a 200-word recommendation including:
+        Key product highlights and advantages
+        Usage scenarios for target audience
+        Specific product recommendations with reasoning
+        Clear purchase links or call-to-action
 """
 )
 
@@ -50,12 +56,21 @@ class UserQuery(BaseModel):
     user_query: str
 
 # Mock product-fetching function
-def fetch_products(category):
-    mock_products = [
-        {"name": "Classic Black Suit", "category": "formal", "price": "$150", "url": "https://shorturl.at/oyo4e"},
-        {"name": "Pool Party T-Shirt", "category": "casual", "price": "$25", "url": "https://shorturl.at/g8pui"},
-    ]
-    return [product for product in mock_products if category in product["category"]]
+def fetch_products(input):
+    url = "https://api.footwayplus.com/v1/inventory/search"
+
+    querystring = input
+    print(querystring, 'querystring')
+
+    headers = {"X-API-KEY": "AIzaSyAXAQlouar4nC9w9qDE88KunaogEwSyboU"}
+    products = []
+    try:
+        response = requests.request("GET", url, headers=headers, params=querystring)
+        products = json.loads(response.text)["items"]
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))
+    return [product for product in products ]
 
 @app.post("/recommendation/")
 async def recommend(query: UserQuery):
@@ -74,8 +89,19 @@ async def recommend(query: UserQuery):
         
         # Fetch mock products
         category = "formal" if "suit" in query.style.lower() else "casual"
-        products = fetch_products(category)
+        products = fetch_products(
+            {
+                "productGroup": query.product_group.capitalize(),
+                "merchantId": '',
+                "vendor": '',
+                "department": '',
+                "productType": '',
+                "page": 1,
+                "pageSize": ''
+            }
+        )
         
         return {"recommendation": response, "products": products}
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))

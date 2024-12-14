@@ -36,11 +36,12 @@ async def on_chat_start():
         [
             (
                 "system",
-                """<START> You are a professional e-commerce personal shopping assistant. Please follow these steps strictly:
+                """You are a professional e-commerce personal shopping assistant. Please follow these steps strictly:
                     Information Gathering Phase:
                     Ask about user's specific shopping preferences (budget, style, purpose)
                     Confirm user's interested vendors, departments, or product categories
                     Note any special requirements or restrictions
+                    Do not ask for budget once answered
                     Product Catalog Update (Must Execute):
                     Real-time update of product catalog based on user preferences
                     Display product names, prices, and stock status
@@ -56,7 +57,7 @@ async def on_chat_start():
                     Ensure visual elements align with product positioning
                     Please do not to repeat the same follow up question in the response once the user has provided its value e.g buget is 200 sek
                     Please do not bother user with follow up question if he mentions that does not know his preferneces 
-                    Please provide confirmation after completing each step and wait for user feedback before proceeding to the next step.<END>
+                    Please provide confirmation after completing each step and wait for user feedback before proceeding to the next step.
                     
                     Optimization Suggestions:
 
@@ -92,11 +93,12 @@ async def main(message: cl.Message):
     response = chain.invoke(input=message.content, callbacks=[cl.LangchainCallbackHandler()])
     data= await extract_parameters(message.content)
 
+    
     # await cl.Message(content=data).send()
     dict_data = json.loads(data)
 
     # Filter keys with non-None values from 'data'
-    non_none_data = {key: value for key, value in dict_data.items() if value is not None}
+    non_none_data = {key: value for key, value in dict_data.items() if value != "None"}
     extracted_data.update(non_none_data)
     # await cl.Message(content=extracted_data).send()
 
@@ -104,6 +106,8 @@ async def main(message: cl.Message):
     extracted_data.update(non_none_data)
     if extracted_data.get('product_group')!="None" and extracted_data.get('purpose') != "None":
         print("Both product_group and purpose have valid values.")
+        print(extracted_data.get('purpose'), "extracted_data.get('purpose')")
+        print(extracted_data.get('product_group'), "extracted_data.get('product_group')")
          # Build the user query
         user_query = {
             "purpose": extracted_data["purpose"],
@@ -121,7 +125,8 @@ async def main(message: cl.Message):
 
             # Format response
             # product_list = "\n".join([f"- {p['name']} ({p['category']}): {p['price']} [Link]({p['url']})" for p in products])
-            product_list = "\n".join([f"- {p['name']} ({p['category']}): {p['price']} ![Image]({p['url']})" for p in products])
+            product_list = "\n".join([f"- {p['productName']} ({p['productType']}): {p['price']} ![Image]({p['image_url']})" for p in products])
+            # product_list = "\n".join([f"""{p['productName']} ({p['productType']}): {p['price']}<br><img src="{p['image_url']}" alt="{p['productName']}" style="width: 150px; height: auto; border-radius: 8px;">""" for p in products])
             await cl.Message(content=f"**Recommendation:** {recommendation}\n\n**Products:**\n{product_list}").send()
         except Exception as e:
              await cl.Message(content=f"Something went wrong: {str(e)}").send()
@@ -149,8 +154,8 @@ async def extract_parameters(user_input: str):
     Extract the following parameters from the user's sentence:
     - budget (if any)
     - style (e.g., casual, formal)
-    - purpose (e.g., wedding, work event)
-    - product group (e.g., clothing, electronics)
+    - purpose (e.g., wedding, work event, everyday wear)
+    - product group (e.g., clothing, electronics, watches)
 
     User input: "{input}"
 
