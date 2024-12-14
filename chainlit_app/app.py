@@ -58,6 +58,7 @@ async def on_chat_start():
                     Please do not to repeat the same follow up question in the response once the user has provided its value e.g buget is 200 sek
                     Please do not bother user with follow up question if he mentions that does not know his preferneces 
                     Please provide confirmation after completing each step and wait for user feedback before proceeding to the next step.
+                    respond to Thanks warmly and with some fun statement
                     
                     Optimization Suggestions:
 
