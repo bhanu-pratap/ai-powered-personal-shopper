@@ -1,0 +1,12 @@
+a[href*='https://github.com/Chainlit/chainlit'] {
+  visibility: hidden;
+}
+
+.markdown-body {
+  li {
+  img {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+}
